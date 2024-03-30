@@ -1,0 +1,114 @@
+# Copyright 2023 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: setup-sigrelease-binary
+author: puerco
+description: 'Installs a binary published by sig-release. This action downloads the binary and and verifies its signature'
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  binary:
+    description: 'Binary to install'
+    required: true
+  version:
+    description: 'Version of the binary to download'
+    default: 'v0.16.5'
+    required: false
+  install-dir:
+    description: 'Where to install the cosign binary'
+    required: false
+    default: '$HOME/.sig-release'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup cosign
+      uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
+
+    - shell: bash
+      run: |
+        #!/usr/bin/env bash
+
+        if [ -z "$NO_COLOR" ]; then
+          alias log_info="echo -e \"\033[1;32mINFO\033[0m:\""
+          alias log_error="echo -e \"\033[1;31mERROR\033[0m:\""
+        else
+          alias log_info="echo \"INFO:\""
+          alias log_error="echo \"ERROR:\""
+        fi
+
+        set -e
+        
+        mkdir -p ${{ inputs.install-dir }}
+
+        # Currently, SIG Release builds for linux amd64/arm64 and macos arm64
+
+        case ${{ runner.os }} in
+          Linux|linux)
+            case ${{ runner.arch }} in
+              X64|amd64)
+                arch='amd64'
+                os='linux'
+                ;;
+
+              ARM64|arm64)
+                arch='arm64'
+                os='linux'
+
+              *)
+                log_error "unsupported architecture ${{ runner.arch }}"
+                exit 1
+                ;;
+            esac
+            ;;
+
+          macOS|macos)
+            case ${{ runner.arch }} in
+              ARM64|arm64)
+                arch='arm64'
+                os='darwin'
+                ;;
+
+              *)
+                log_error "unsupported architecture ${{ runner.arch }}"
+                exit 1
+                ;;
+            esac
+            ;;
+
+          *)
+            log_error "unsupported os ${{ runner.os }}"
+            exit 1
+            ;;
+        esac
+
+        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os} -o ${{ inputs.install-dir }}/${{ inputs.binary }}
+        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.sig -o ${{ inputs.install-dir }}//${{ inputs.binary }}.sig
+        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.pem -o ${{ inputs.install-dir }}//${{ inputs.binary }}.pem
+
+        # Verify the downloaded binary
+        cosign verify-blob \
+               --signature="${{ inputs.install-dir }}/${{ inputs.binary }}.sig" --certificate="${{ inputs.install-dir }}/${{ inputs.binary }}.pem" \
+               --certificate-identity="https://github.com/kubernetes/release/.github/workflows/release.yml@refs/tags/${{ inputs.version }}" \
+               --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+               ${{ inputs.install-dir }}/${{ inputs.binary }}
+
+        chmod +x ${{ inputs.install-dir }}/${{ inputs.binary }}/
+        log_info "${{ inputs.binary }} ${{ inputs.version }} installed"
+
+    - run: echo "${{ inputs.install-dir }}" >> $GITHUB_PATH
+      shell: bash
+
