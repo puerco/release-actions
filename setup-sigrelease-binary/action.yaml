@@ -51,6 +51,7 @@ runs:
         fi
 
         set -e
+        set -o xtrace
         
         mkdir -p ${{ inputs.install-dir }}
 
@@ -100,7 +101,8 @@ runs:
         curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.sig -o ${{ inputs.install-dir }}/${{ inputs.binary }}.sig
         curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.pem -o ${{ inputs.install-dir }}/${{ inputs.binary }}.pem
 
-        ls -l ${{ inputs.install-dir }} 
+        ls -l ${{ inputs.install-dir }}
+
         echo "Signature:"
         cat ${{ inputs.install-dir }}/${{ inputs.binary }}.sig
 
