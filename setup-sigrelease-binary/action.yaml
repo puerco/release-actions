@@ -97,8 +97,15 @@ runs:
         esac
 
         curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os} -o ${{ inputs.install-dir }}/${{ inputs.binary }}
-        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.sig -o ${{ inputs.install-dir }}//${{ inputs.binary }}.sig
-        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.pem -o ${{ inputs.install-dir }}//${{ inputs.binary }}.pem
+        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.sig -o ${{ inputs.install-dir }}/${{ inputs.binary }}.sig
+        curl -sL https://github.com/kubernetes/release/releases/download/${{ inputs.version }}/publish-release-${arch}-${os}.pem -o ${{ inputs.install-dir }}/${{ inputs.binary }}.pem
+
+        ls -l ${{ inputs.install-dir }} 
+        echo "Signature:"
+        cat ${{ inputs.install-dir }}/${{ inputs.binary }}.sig
+
+        echo "Cert:"
+        cat ${{ inputs.install-dir }}/${{ inputs.binary }}.pem
 
         # Verify the downloaded binary
         cosign verify-blob \
