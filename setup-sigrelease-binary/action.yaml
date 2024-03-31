@@ -42,6 +42,7 @@ runs:
       run: |
         #!/usr/bin/env bash
 
+        shopt -s expand_aliases
         if [ -z "$NO_COLOR" ]; then
           alias log_info="echo -e \"\033[1;32mINFO\033[0m:\""
           alias log_error="echo -e \"\033[1;31mERROR\033[0m:\""
@@ -116,7 +117,7 @@ runs:
                --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
                ${{ inputs.install-dir }}/${{ inputs.binary }}
 
-        chmod +x ${{ inputs.install-dir }}/${{ inputs.binary }}/
+        chmod +x ${{ inputs.install-dir }}/${{ inputs.binary }}
         log_info "${{ inputs.binary }} ${{ inputs.version }} installed"
 
     - run: echo "${{ inputs.install-dir }}" >> $GITHUB_PATH
